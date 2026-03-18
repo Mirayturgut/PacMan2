@@ -4,8 +4,34 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Data/**/*.cs" />
+    <Compile Include="Models/**/*.cs" />
+    <Compile Include="Migrations/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="wwwroot/**/*" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="appsettings.json" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.Development.json" />
+    <None Include="PacMan2.http" />
+    <None Include="README.md" />
+    <None Include=".gitignore" />
+    <None Include="Dockerfile" />
+    <None Include=".dockerignore" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
