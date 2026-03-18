@@ -1,7 +1,6 @@
-bin
-obj
-.git
+**/bin
+**/obj
 .vs
 .vscode
-node_modules
+.git
 out.xml
