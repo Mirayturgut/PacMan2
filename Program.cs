@@ -5,9 +5,13 @@ using PacMan2.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Services
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+var connectionString =
+    Environment.GetEnvironmentVariable("ConnectionStrings__Default")
+    ?? builder.Configuration.GetConnectionString("Default");
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
+    
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
