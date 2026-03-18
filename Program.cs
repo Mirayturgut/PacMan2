@@ -4,11 +4,10 @@ using PacMan2.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Services ────────────────────────────────────────────────────────────────
-
+// Services
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
-    
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -19,30 +18,38 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ── Build ────────────────────────────────────────────────────────────────────
-
 var app = builder.Build();
 
-// ── Auto-migrate on startup ──────────────────────────────────────────────────
+// Render port binding
+var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
+app.Urls.Add($"http://0.0.0.0:{port}");
 
+// Auto-migrate on startup (safe)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+
+    try
+    {
+        db.Database.Migrate();
+        Console.WriteLine("Database migration completed.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Database migration skipped.");
+        Console.WriteLine(ex.Message);
+    }
 }
 
-// ── Middleware ───────────────────────────────────────────────────────────────
-
+// Middleware
 app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// ── Endpoints ────────────────────────────────────────────────────────────────
-
 // Health check
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
-// POST /api/scores – save a game result
+// POST /api/scores
 app.MapPost("/api/scores", async (ScoreCreateDto dto, AppDbContext db) =>
 {
     if (string.IsNullOrWhiteSpace(dto.PlayerName))
@@ -56,12 +63,12 @@ app.MapPost("/api/scores", async (ScoreCreateDto dto, AppDbContext db) =>
 
     var score = new Score
     {
-        PlayerName     = dto.PlayerName.Trim(),
-        Game           = string.IsNullOrWhiteSpace(dto.Game) ? "pacman" : dto.Game.Trim().ToLower(),
-        Points         = dto.Points,
-        IsWin          = dto.IsWin,
+        PlayerName = dto.PlayerName.Trim(),
+        Game = string.IsNullOrWhiteSpace(dto.Game) ? "pacman" : dto.Game.Trim().ToLower(),
+        Points = dto.Points,
+        IsWin = dto.IsWin,
         DurationSeconds = dto.DurationSeconds,
-        PlayedAtUtc    = DateTime.UtcNow
+        PlayedAtUtc = DateTime.UtcNow
     };
 
     db.Scores.Add(score);
@@ -70,7 +77,7 @@ app.MapPost("/api/scores", async (ScoreCreateDto dto, AppDbContext db) =>
     return Results.Created($"/api/scores/{score.Id}", score);
 });
 
-// GET /api/scores/raw – all records, newest first
+// GET /api/scores/raw
 app.MapGet("/api/scores/raw", async (AppDbContext db) =>
 {
     var scores = await db.Scores
@@ -80,18 +87,18 @@ app.MapGet("/api/scores/raw", async (AppDbContext db) =>
     return Results.Ok(scores);
 });
 
-// GET /api/scores/summary – per-player aggregated leaderboard
+// GET /api/scores/summary
 app.MapGet("/api/scores/summary", async (AppDbContext db) =>
 {
     var summary = await db.Scores
         .GroupBy(s => s.PlayerName)
         .Select(g => new ScoreSummaryDto
         {
-            PlayerName      = g.Key,
-            TotalScore      = g.Sum(s => s.Points),
-            TotalGames      = g.Count(),
-            TotalWins       = g.Count(s => s.IsWin),
-            BestScore       = g.Max(s => s.Points),
+            PlayerName = g.Key,
+            TotalScore = g.Sum(s => s.Points),
+            TotalGames = g.Count(),
+            TotalWins = g.Count(s => s.IsWin),
+            BestScore = g.Max(s => s.Points),
             LastPlayedAtUtc = g.Max(s => (DateTime?)s.PlayedAtUtc)
         })
         .OrderByDescending(s => s.TotalScore)
