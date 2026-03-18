@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>PAC-MAN</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/game.css">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23ffd700'/%3E%3Cpath d='M16 16 L30 10 A14 14 0 0 0 30 22 Z' fill='%2304040f'/%3E%3C/svg%3E" />
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="header" role="banner">
+    <h1 class="title">PAC<span>-</span>MAN</h1>
+  </header>
+  <style>
+    .header{
+      margin-top: 10%;
+    }
+  </style>
+
+  <!-- ── Main layout ───────────────────────────────────── -->
+  <main class="game-wrapper" role="main">
+
+    <!-- ── Game card ──────────────────────────────────── -->
+    <section class="game-card" aria-label="Oyun Alanı">
+
+      <!-- Info bar -->
+      <div class="info-bar" role="status" aria-live="polite">
+        <div class="info-item">
+          <span class="info-label">SKOR</span>
+          <span class="info-value" id="score-value">0</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">CANLAR</span>
+          <div id="lives-display" aria-label="Kalan canlar"></div>
+        </div>
+        <div class="info-item">
+          <span class="info-label">SÜRE</span>
+          <span class="info-value" id="timer-value">00:00</span>
+        </div>
+      </div>
+
+      <!-- Power bar -->
+      <div id="power-bar-wrap" class="power-bar-wrap hidden" aria-label="Güç süresi">
+        <span class="power-bar-label">⚡ GÜÇ</span>
+        <div class="power-bar-track">
+          <div class="power-bar-fill" id="power-bar-fill" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- Status message -->
+      <p id="status-message" class="status-ready" aria-live="assertive"></p>
+
+      <!-- Canvas + overlay -->
+      <div class="canvas-wrapper">
+        <canvas id="game-canvas" role="img" aria-label="Pacman oyun alanı"></canvas>
+
+        <div id="canvas-overlay" class="canvas-overlay" role="dialog" aria-modal="true">
+          <p id="overlay-title" class="overlay-title">PAC-MAN</p>
+          <pre id="overlay-score" class="overlay-score"></pre>
+
+          <div class="player-input-row">
+            <input
+              id="player-name"
+              type="text"
+              maxlength="30"
+              placeholder="OYUNCU ADINIZ"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Oyuncu adı"
+            />
+            <button id="btn-start" class="btn btn-primary">BAŞLAT</button>
+          </div>
+
+          <button id="btn-restart" class="btn btn-secondary hidden">
+            ↺ YENİDEN BAŞLAT
+          </button>
+        </div>
+      </div>
+
+      <!-- ── On-screen D-pad (mobile) ─────────────────── -->
+      <div class="dpad" role="group" aria-label="Yön tuşları">
+        <div class="dpad-row">
+          <button id="dpad-up"    class="dpad-btn" aria-label="Yukarı">▲</button>
+        </div>
+        <div class="dpad-row">
+          <button id="dpad-left"  class="dpad-btn" aria-label="Sol">◀</button>
+          <div class="dpad-center"></div>
+          <button id="dpad-right" class="dpad-btn" aria-label="Sağ">▶</button>
+        </div>
+        <div class="dpad-row">
+          <button id="dpad-down"  class="dpad-btn" aria-label="Aşağı">▼</button>
+        </div>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="controls">
+        <button id="btn-leaderboard" class="btn btn-danger"
+                aria-label="Liderlik tablosunu aç" aria-haspopup="dialog">
+          🏆 LIDERBOARD
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ── Side panel (desktop only) ─────────────────── -->
+    <aside class="side-panel" aria-label="Oyun bilgileri">
+      <div>
+        <p class="panel-section-title">PUAN SİSTEMİ</p>
+        <ul class="panel-info-list">
+          <li><span>Küçük yem</span>     <span class="val">+10</span></li>
+          <li><span>Büyük yem</span>     <span class="val">+50</span></li>
+          <li><span>Hayalet</span>       <span class="val">+200</span></li>
+          <li><span>Kazanma bonusu</span><span class="val">+2000</span></li>
+        </ul>
+      </div>
+
+      <div>
+        <p class="panel-section-title">KONTROLLER</p>
+        <div class="keys-grid" aria-label="Klavye kontrolleri">
+          <div></div>
+          <div class="key center">W / ↑</div>
+          <div></div>
+          <div class="key">A / ←</div>
+          <div class="key center">S / ↓</div>
+          <div class="key">D / →</div>
+        </div>
+      </div>
+
+      <div>
+        <p class="panel-section-title">NASIL OYNANIR</p>
+        <ul class="panel-info-list" style="font-size:0.45rem;line-height:1.8">
+          <li>Tüm yemleri ye</li>
+          <li>Hayaletlerden kaç</li>
+          <li>Büyük yemle güçlen</li>
+          <li>Güçlüyken hayaletleri ye</li>
+          <li>Yenen hayalet bir daha gelmez</li>
+          <li>3 canın var</li>
+        </ul>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ── Leaderboard modal ──────────────────────────────── -->
+  <div id="leaderboard-modal" class="modal-backdrop"
+       role="dialog" aria-modal="true"
+       aria-label="Liderlik tablosu" aria-hidden="true">
+    <div class="modal" role="document">
+      <div class="modal-header">
+        <h2 class="modal-title">🏆 LEADERBOARD</h2>
+        <button id="modal-close" class="modal-close" aria-label="Kapat">✕ KAPAT</button>
+      </div>
+      <div id="modal-body" class="modal-body">
+        <p class="loading-text">YÜKLENİYOR...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts – order matters -->
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/game.js"></script>
+</body>
+</html>
