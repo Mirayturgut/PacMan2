@@ -11,7 +11,7 @@ var connectionString =
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
-    
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -40,8 +40,19 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Database migration skipped.");
+        Console.WriteLine("Migrate failed, trying EnsureCreated...");
         Console.WriteLine(ex.Message);
+
+        try
+        {
+            db.Database.EnsureCreated();
+            Console.WriteLine("Database ensured/created successfully.");
+        }
+        catch (Exception ex2)
+        {
+            Console.WriteLine("EnsureCreated also failed.");
+            Console.WriteLine(ex2.Message);
+        }
     }
 }
 
