@@ -5,10 +5,11 @@ using PacMan2.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// önce connection string
-var connectionString = builder.Configuration.GetConnectionString("Default");
+// Connection string
+var connectionString = builder.Configuration.GetConnectionString("Default")
+                      ?? throw new InvalidOperationException("Connection string 'Default' bulunamadı.");
 
-// sonra logla
+// Debug log
 var csb = new SqlConnectionStringBuilder(connectionString);
 Console.WriteLine("=== ACTIVE SQL SETTINGS ===");
 Console.WriteLine($"DataSource: {csb.DataSource}");
@@ -16,7 +17,7 @@ Console.WriteLine($"InitialCatalog: {csb.InitialCatalog}");
 Console.WriteLine($"UserID: {csb.UserID}");
 Console.WriteLine("===========================");
 
-// sonra DbContext
+// DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions =>
     {
@@ -40,31 +41,15 @@ var app = builder.Build();
 var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
-// migrate bloğunu şimdilik kapat
-/*
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    try
-    {
-        db.Database.Migrate();
-        Console.WriteLine("Database migration completed.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("Database migration skipped.");
-        Console.WriteLine(ex.Message);
-    }
-}
-*/
-
+// Middleware
 app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+// Health
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
+// DB test
 app.MapGet("/api/db-test", async (AppDbContext db) =>
 {
     try
@@ -82,13 +67,111 @@ app.MapGet("/api/db-test", async (AppDbContext db) =>
     }
 });
 
-// DELETE endpoint sende kalsın
-app.MapDelete("/api/scores/by-player/{playerName}", async (string playerName, AppDbContext db) =>
+// POST /api/scores
+app.MapPost("/api/scores", async (ScoreCreateDto dto, AppDbContext db) =>
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(dto.PlayerName))
+            return Results.BadRequest(new { error = "PlayerName boş olamaz." });
+
+        if (dto.Points < 0)
+            return Results.BadRequest(new { error = "Points negatif olamaz." });
+
+        if (dto.DurationSeconds < 0)
+            return Results.BadRequest(new { error = "DurationSeconds negatif olamaz." });
+
+        var score = new Score
+        {
+            PlayerName = dto.PlayerName.Trim(),
+            Game = string.IsNullOrWhiteSpace(dto.Game) ? "pacman" : dto.Game.Trim().ToLower(),
+            Points = dto.Points,
+            IsWin = dto.IsWin,
+            DurationSeconds = dto.DurationSeconds,
+            PlayedAtUtc = DateTime.UtcNow
+        };
+
+        db.Scores.Add(score);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/api/scores/{score.Id}", score);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            title: "Create score error",
+            detail: ex.ToString(),
+            statusCode: 500
+        );
+    }
+});
+
+// GET /api/scores/raw
+app.MapGet("/api/scores/raw", async (AppDbContext db) =>
 {
     try
     {
         var scores = await db.Scores
-            .Where(s => s.PlayerName == playerName)
+            .OrderByDescending(s => s.PlayedAtUtc)
+            .ToListAsync();
+
+        return Results.Ok(scores);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            title: "Raw scores error",
+            detail: ex.ToString(),
+            statusCode: 500
+        );
+    }
+});
+
+// GET /api/scores/summary
+app.MapGet("/api/scores/summary", async (AppDbContext db) =>
+{
+    try
+    {
+        var scores = await db.Scores.ToListAsync();
+
+        var summary = scores
+            .GroupBy(s => s.PlayerName)
+            .Select(g => new ScoreSummaryDto
+            {
+                PlayerName = g.Key,
+                TotalScore = g.Sum(s => s.Points),
+                TotalGames = g.Count(),
+                TotalWins = g.Count(s => s.IsWin),
+                BestScore = g.Max(s => s.Points),
+                LastPlayedAtUtc = g.Max(s => (DateTime?)s.PlayedAtUtc)
+            })
+            .OrderByDescending(s => s.TotalScore)
+            .ThenByDescending(s => s.TotalWins)
+            .ThenByDescending(s => s.BestScore)
+            .ThenBy(s => s.PlayerName)
+            .ToList();
+
+        return Results.Ok(summary);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            title: "Leaderboard error",
+            detail: ex.ToString(),
+            statusCode: 500
+        );
+    }
+});
+
+// DELETE /api/scores/by-player/{playerName}
+app.MapDelete("/api/scores/by-player/{playerName}", async (string playerName, AppDbContext db) =>
+{
+    try
+    {
+        var normalized = playerName.Trim().ToLower();
+
+        var scores = await db.Scores
+            .Where(s => s.PlayerName.ToLower() == normalized)
             .ToListAsync();
 
         if (!scores.Any())
