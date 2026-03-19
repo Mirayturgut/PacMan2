@@ -1,16 +1,29 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PacMan2.Data;
 using PacMan2.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Services
-var connectionString =
-    Environment.GetEnvironmentVariable("ConnectionStrings__Default")
-    ?? builder.Configuration.GetConnectionString("Default");
+// önce connection string
+var connectionString = builder.Configuration.GetConnectionString("Default");
 
+// sonra logla
+var csb = new SqlConnectionStringBuilder(connectionString);
+Console.WriteLine("=== ACTIVE SQL SETTINGS ===");
+Console.WriteLine($"DataSource: {csb.DataSource}");
+Console.WriteLine($"InitialCatalog: {csb.InitialCatalog}");
+Console.WriteLine($"UserID: {csb.UserID}");
+Console.WriteLine("===========================");
+
+// sonra DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        sqlOptions.CommandTimeout(60);
+    }));
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -27,7 +40,8 @@ var app = builder.Build();
 var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
-// Auto-migrate on startup (safe)
+// migrate bloğunu şimdilik kapat
+/*
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -43,43 +57,32 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine(ex.Message);
     }
 }
+*/
 
-// Middleware
 app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Health check
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 
-// POST /api/scores
-app.MapPost("/api/scores", async (ScoreCreateDto dto, AppDbContext db) =>
+app.MapGet("/api/db-test", async (AppDbContext db) =>
 {
-    if (string.IsNullOrWhiteSpace(dto.PlayerName))
-        return Results.BadRequest(new { error = "PlayerName boş olamaz." });
-
-    if (dto.Points < 0)
-        return Results.BadRequest(new { error = "Points negatif olamaz." });
-
-    if (dto.DurationSeconds < 0)
-        return Results.BadRequest(new { error = "DurationSeconds negatif olamaz." });
-
-    var score = new Score
+    try
     {
-        PlayerName = dto.PlayerName.Trim(),
-        Game = string.IsNullOrWhiteSpace(dto.Game) ? "pacman" : dto.Game.Trim().ToLower(),
-        Points = dto.Points,
-        IsWin = dto.IsWin,
-        DurationSeconds = dto.DurationSeconds,
-        PlayedAtUtc = DateTime.UtcNow
-    };
-
-    db.Scores.Add(score);
-    await db.SaveChangesAsync();
-
-    return Results.Created($"/api/scores/{score.Id}", score);
+        var canConnect = await db.Database.CanConnectAsync();
+        return Results.Ok(new { connected = canConnect });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            title: "DB connection error",
+            detail: ex.ToString(),
+            statusCode: 500
+        );
+    }
 });
 
+// DELETE endpoint sende kalsın
 app.MapDelete("/api/scores/by-player/{playerName}", async (string playerName, AppDbContext db) =>
 {
     try
@@ -108,39 +111,6 @@ app.MapDelete("/api/scores/by-player/{playerName}", async (string playerName, Ap
             statusCode: 500
         );
     }
-});
-
-// GET /api/scores/raw
-app.MapGet("/api/scores/raw", async (AppDbContext db) =>
-{
-    var scores = await db.Scores
-        .OrderByDescending(s => s.PlayedAtUtc)
-        .ToListAsync();
-
-    return Results.Ok(scores);
-});
-
-// GET /api/scores/summary
-app.MapGet("/api/scores/summary", async (AppDbContext db) =>
-{
-    var summary = await db.Scores
-        .GroupBy(s => s.PlayerName)
-        .Select(g => new ScoreSummaryDto
-        {
-            PlayerName = g.Key,
-            TotalScore = g.Sum(s => s.Points),
-            TotalGames = g.Count(),
-            TotalWins = g.Count(s => s.IsWin),
-            BestScore = g.Max(s => s.Points),
-            LastPlayedAtUtc = g.Max(s => (DateTime?)s.PlayedAtUtc)
-        })
-        .OrderByDescending(s => s.TotalScore)
-        .ThenByDescending(s => s.TotalWins)
-        .ThenByDescending(s => s.BestScore)
-        .ThenBy(s => s.PlayerName)
-        .ToListAsync();
-
-    return Results.Ok(summary);
 });
 
 app.Run();
