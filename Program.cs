@@ -79,19 +79,35 @@ app.MapPost("/api/scores", async (ScoreCreateDto dto, AppDbContext db) =>
 
     return Results.Created($"/api/scores/{score.Id}", score);
 });
+
 app.MapDelete("/api/scores/by-player/{playerName}", async (string playerName, AppDbContext db) =>
 {
-    var scores = await db.Scores
-        .Where(s => s.PlayerName == playerName)
-        .ToListAsync();
+    try
+    {
+        var scores = await db.Scores
+            .Where(s => s.PlayerName == playerName)
+            .ToListAsync();
 
-    if (!scores.Any())
-        return Results.NotFound(new { error = "Oyuncu bulunamadı." });
+        if (!scores.Any())
+            return Results.NotFound(new { error = "Oyuncu bulunamadı." });
 
-    db.Scores.RemoveRange(scores);
-    await db.SaveChangesAsync();
+        db.Scores.RemoveRange(scores);
+        await db.SaveChangesAsync();
 
-    return Results.Ok(new { message = $"{playerName} adlı oyuncunun tüm skorları silindi." });
+        return Results.Ok(new
+        {
+            message = $"{playerName} adlı oyuncunun tüm skorları silindi.",
+            deletedCount = scores.Count
+        });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            title: "Delete error",
+            detail: ex.ToString(),
+            statusCode: 500
+        );
+    }
 });
 
 // GET /api/scores/raw
