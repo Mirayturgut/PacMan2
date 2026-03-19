@@ -88,7 +88,7 @@ app.MapPost("/api/scores", async (ScoreCreateDto dto, AppDbContext db) =>
             Points = dto.Points,
             IsWin = dto.IsWin,
             DurationSeconds = dto.DurationSeconds,
-            PlayedAtUtc = DateTime.UtcNow
+            PlayedAtUtc = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc)
         };
 
         db.Scores.Add(score);

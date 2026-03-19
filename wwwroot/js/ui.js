@@ -154,7 +154,8 @@ const UI = (() => {
             const medal    = medals[i] ?? '';
             const rankCls  = rank <= 3 ? `rank-${rank}` : '';
             const lastDate = row.lastPlayedAtUtc
-              ? new Date(row.lastPlayedAtUtc).toLocaleString('tr-TR', {
+              ? new Date(row.lastPlayedAtUtc + 'Z').toLocaleString('tr-TR', {
+                 timeZone: 'Europe/Istanbul',
                   day: '2-digit', month: '2-digit', year: 'numeric',
                   hour: '2-digit', minute: '2-digit'
                 })
