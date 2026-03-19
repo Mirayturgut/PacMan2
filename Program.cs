@@ -145,10 +145,13 @@ app.MapGet("/api/scores/summary", async (AppDbContext db) =>
                 BestScore = g.Max(s => s.Points),
                 LastPlayedAtUtc = g.Max(s => (DateTime?)s.PlayedAtUtc)
             })
-            .OrderByDescending(s => s.TotalWins)
-            .ThenByDescending(s => s.TotalScore)
-            .ThenByDescending(s => s.BestScore)
-            .ThenBy(s => s.PlayerName)
+           .OrderByDescending(s => s.TotalGames == 0 
+    ? 0 
+    : (double)s.TotalWins / s.TotalGames)
+.ThenByDescending(s => s.TotalWins)
+.ThenByDescending(s => s.TotalScore)
+.ThenByDescending(s => s.BestScore)
+.ThenBy(s => s.PlayerName)
             .ToList();
 
         return Results.Ok(summary);
