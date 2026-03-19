@@ -147,7 +147,6 @@
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/scopedcss/bundle/PacMan2.styles.css
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/compressed/xibfybo7u8-{0}-sdzkbgpkv7-sdzkbgpkv7.gz
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/compressed/r4pt74nike-{0}-0ep7cwfvdw-0ep7cwfvdw.gz
-/Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/compressed/re834ok688-{0}-mrlea72ot3-mrlea72ot3.gz
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/compressed/5sj2lc0ma7-{0}-n3u4t80rgq-n3u4t80rgq.gz
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/compressed/fph718ppgy-{0}-kk6c8dgs8x-kk6c8dgs8x.gz
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/staticwebassets.build.json
@@ -162,3 +161,4 @@
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/PacMan2.genruntimeconfig.cache
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/ref/PacMan2.dll
 /Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/compressed/r7qb11g1g2-{0}-7g6p6mttiv-7g6p6mttiv.gz
+/Users/mirayturgut/Documents/Works/PacMan2/obj/Debug/net10.0/compressed/re834ok688-{0}-h4qk21v068-h4qk21v068.gz
